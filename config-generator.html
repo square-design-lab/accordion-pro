@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SDL Accordion Pro — Config Generator</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-body: #F5F5F7;
+            --bg-sidebar: #FFFFFF;
+            --text-main: #1C1C1E;
+            --text-secondary: #666666;
+            --text-tertiary: #999999;
+            --border-light: #E5E5E5;
+            --border-hover: #D4D4D4;
+            --border-active: #18181B;
+            --accent: #18181B;
+            --accent-hover: #09090B;
+            --accent-contrast: #FFFFFF;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+            --shadow-lg: 0 20px 40px -12px rgba(0,0,0,0.12);
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --sidebar-width: 380px;
+            --header-height: 60px;
+        }
+
+        * { box-sizing: border-box; outline: none; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            font-size: 13px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            z-index: 20;
+        }
+
+        .sidebar-header {
+            height: var(--header-height);
+            padding: 0 24px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255,255,255,0.8);
+            backdrop-filter: blur(10px);
+            flex-shrink: 0;
+        }
+
+        .sidebar-header h2 {
+            font-size: 15px;
+            font-weight: 700;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            letter-spacing: -0.02em;
+        }
+
+        .brand-icon {
+            width: 30px; height: 30px;
+            background: var(--accent);
+            color: #fff;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header .badge {
+            font-size: 10px;
+            background: #F4F4F5;
+            padding: 2px 7px;
+            border-radius: 4px;
+            color: #52525B;
+            font-weight: 600;
+            border: 1px solid #D4D4D8;
+        }
+
+        .sidebar-content { flex: 1; overflow-y: auto; padding: 24px; }
+        .sidebar-content::-webkit-scrollbar { width: 6px; }
+        .sidebar-content::-webkit-scrollbar-thumb { background: #E5E5E5; border-radius: 3px; }
+        .sidebar-content::-webkit-scrollbar-thumb:hover { background: #D4D4D4; }
+
+        .group { margin-bottom: 8px; border-bottom: 1px solid var(--border-light); padding-bottom: 16px; }
+
+        .group-header {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--text-tertiary);
+            margin-bottom: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: color 0.2s;
+            padding-top: 12px;
+        }
+        .group-header:hover { color: var(--text-main); }
+        .group-header::after {
+            content: '';
+            width: 6px; height: 6px;
+            border-right: 1.5px solid currentColor;
+            border-bottom: 1.5px solid currentColor;
+            transform: rotate(45deg);
+            transition: transform 0.2s;
+            margin-right: 4px;
+        }
+        .group.open .group-header::after { transform: rotate(-135deg); }
+        .group-body { display: none; }
+        .group.open .group-body { display: block; animation: slideIn 0.2s ease-out; }
+
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .control-row { margin-bottom: 16px; }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text-main);
+        }
+
+        .helper-text { font-size: 11px; color: var(--text-secondary); margin-top: 6px; line-height: 1.4; }
+
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            height: 36px;
+            padding: 0 10px;
+            font-family: inherit;
+            font-size: 13px;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            background: #fff;
+            color: var(--text-main);
+            transition: all 0.15s;
+            appearance: none;
+        }
+        input:hover, select:hover { border-color: var(--border-hover); }
+        input:focus, select:focus { border-color: var(--border-active); box-shadow: 0 0 0 3px rgba(0,0,0,0.08); }
+
+        select {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 14px;
+            padding-right: 30px;
+            cursor: pointer;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            min-height: 24px;
+        }
+        .toggle-row label { margin: 0; font-weight: 400; color: var(--text-secondary); }
+
+        input[type="checkbox"] {
+            appearance: none;
+            width: 36px; height: 20px;
+            background: #E5E5E5;
+            border-radius: 20px;
+            position: relative;
+            cursor: pointer;
+            transition: 0.2s;
+            border: none;
+            flex-shrink: 0;
+        }
+        input[type="checkbox"]::after {
+            content: '';
+            position: absolute;
+            top: 2px; left: 2px;
+            width: 16px; height: 16px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            transition: 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+        input[type="checkbox"]:checked { background: var(--accent); }
+        input[type="checkbox"]:checked::after { transform: translateX(16px); }
+
+        .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .row-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; }
+        .row-4 label, .row-2 label { font-size: 11px; color: var(--text-secondary); }
+
+        .color-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #FAFAFA;
+            padding: 8px 12px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-light);
+            margin-bottom: 8px;
+        }
+        .color-row .color-label { font-size: 12px; font-weight: 500; }
+        input[type="color"] {
+            width: 28px; height: 28px;
+            padding: 0;
+            border: 1.5px solid #B8B8B8;
+            border-radius: 50%;
+            overflow: hidden;
+            cursor: pointer;
+            background: none;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
+
+        /* --- MAIN CONTENT --- */
+        .main-content { flex: 1; display: flex; flex-direction: column; background: var(--bg-body); position: relative; }
+
+        .topbar {
+            height: var(--header-height);
+            padding: 0 24px;
+            border-bottom: 1px solid var(--border-light);
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .device-toggle { background: #F2F2F2; padding: 2px; border-radius: 6px; display: flex; }
+        .device-toggle button {
+            border: none; background: transparent;
+            padding: 6px 12px; font-size: 12px; font-weight: 500;
+            color: var(--text-secondary); cursor: pointer; border-radius: 4px; transition: 0.2s;
+        }
+        .device-toggle button.active { background: #fff; color: var(--text-main); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+
+        .copy-btn {
+            background: var(--accent); color: var(--accent-contrast);
+            border: none; padding: 9px 20px; border-radius: 7px;
+            font-weight: 600; font-size: 13px; letter-spacing: -0.01em;
+            cursor: pointer; display: flex; align-items: center; gap: 7px;
+            transition: transform 0.1s, background 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+            font-family: inherit;
+        }
+        .copy-btn:hover { background: var(--accent-hover); }
+        .copy-btn:active { transform: scale(0.97); }
+        .copy-btn.copied { background: #16A34A; box-shadow: 0 1px 3px rgba(22,163,74,0.3); }
+
+        .preview-container {
+            flex: 1; overflow-y: auto; padding: 40px;
+            display: flex; justify-content: center; align-items: flex-start;
+            background-image: radial-gradient(#E1E1E1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        #previewFrame {
+            background: #fff;
+            width: 100%;
+            max-width: 820px;
+            min-height: 500px;
+            box-shadow: var(--shadow-lg);
+            border-radius: var(--radius-lg);
+            padding: 56px 48px;
+            transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), max-width 0.3s ease;
+            border: 1px solid var(--border-light);
+        }
+        #previewFrame.mobile {
+            max-width: 390px;
+            padding: 28px 22px;
+            border-radius: 30px;
+            border: 8px solid #333;
+        }
+
+        .preview-eyebrow {
+            font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+            color: var(--text-tertiary); font-weight: 600; margin-bottom: 18px;
+        }
+
+        .code-drawer {
+            height: 230px; background: #0D0D0D; color: #E1E1E1;
+            display: flex; flex-direction: column;
+            border-top: 1px solid var(--border-light);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .drawer-header {
+            padding: 10px 24px; background: #1A1A1A; border-bottom: 1px solid #333;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .drawer-header h3 {
+            margin: 0; font-size: 11px; text-transform: uppercase;
+            letter-spacing: 0.05em; color: #888;
+        }
+        #codeOutput { flex: 1; padding: 20px 24px; margin: 0; overflow: auto; font-size: 12px; line-height: 1.6; color: #A9B7C6; white-space: pre; }
+
+        #codeOutput .hl-key   { color: #E5BF78; }
+        #codeOutput .hl-str   { color: #87C98F; }
+        #codeOutput .hl-bool  { color: #79B8FF; }
+        #codeOutput .hl-num   { color: #FF9D7C; }
+        #codeOutput .hl-tag   { color: #6B8CAE; }
+        #codeOutput .hl-attr  { color: #E5BF78; }
+        #codeOutput .hl-comment { color: #5C6370; font-style: italic; }
+
+        .mobile-tabs { display: none; }
+        .mobile-copy-btn { display: none; }
+
+        @media (max-width: 1023px) {
+            body { flex-direction: column; height: 100vh; overflow: hidden; }
+            .main-content { display: none; }
+            .sidebar {
+                position: fixed; top: 0; left: 0; right: 0;
+                bottom: calc(68px + env(safe-area-inset-bottom));
+                width: 100%; border-right: none; display: none; flex-direction: column; z-index: 50;
+            }
+            .mobile-tabs {
+                display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+                background: #fff; border-top: 1px solid #E5E5E5; z-index: 100;
+                height: 68px; padding: 8px 12px;
+                padding-bottom: calc(8px + env(safe-area-inset-bottom)); gap: 6px; align-items: stretch;
+            }
+            .tab-btn {
+                flex: 1; border: none; background: transparent; color: var(--text-tertiary);
+                font-size: 11px; font-weight: 500; font-family: inherit; cursor: pointer;
+                border-radius: 10px; display: flex; flex-direction: column; align-items: center;
+                justify-content: center; gap: 4px; transition: background 0.18s, color 0.18s;
+            }
+            .tab-btn.active { background: var(--accent); color: #fff; font-weight: 600; }
+            .mobile-copy-btn { display: flex; }
+            body.tab-edit .sidebar { display: flex; }
+            body.tab-preview .sidebar { display: none; }
+            body.tab-preview .main-content { display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: calc(68px + env(safe-area-inset-bottom)); height: auto; }
+            body.tab-preview .code-drawer { display: none; }
+            body.tab-code .sidebar { display: none; }
+            body.tab-code .main-content { display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: calc(68px + env(safe-area-inset-bottom)); height: auto; }
+            body.tab-code .preview-container { display: none; }
+            body.tab-code .code-drawer { flex: 1; height: auto; }
+        }
+
+        /* =========================================================
+           LIVE PREVIEW — real SDL Accordion Pro styles
+           (keyed off [data-sdl-plugin="accordions"], identical to accordion.css)
+           ========================================================= */
+        [data-sdl-plugin="accordions"] {
+            --sdl-accordion-title-color: #1C1C1E;
+            --sdl-accordion-divider-color: #E2E2E2;
+            --sdl-accordion-icon-color: #1C1C1E;
+            color: #1C1C1E;
+        }
+        [data-sdl-plugin="accordions"] .accordion-items-container { margin: 0; padding: 0; list-style-type: none; }
+        [data-sdl-plugin="accordions"] .accordion-item {
+            padding: 0; margin: 0; position: relative; overflow: hidden;
+            border-width: var(--sdl-accordion-item-border-width, 0px);
+            border-style: var(--sdl-accordion-item-border-style, solid);
+            border-color: var(--sdl-accordion-item-border-color, currentColor);
+            border-radius: var(--sdl-accordion-item-border-radius, 0px);
+        }
+        [data-sdl-plugin="accordions"] .accordion-item:not(:last-of-type) { margin-bottom: var(--sdl-accordion-item-space-between, 0px); }
+        [data-sdl-plugin="accordions"] .accordion-divider {
+            background-color: var(--sdl-accordion-divider-color, currentColor);
+            height: var(--sdl-accordion-divider-height, 1px);
+            opacity: var(--sdl-accordion-divider-opacity, 1);
+        }
+        [data-sdl-plugin="accordions"] .accordion-items-container:not([data-is-last-divider-visible="true"]) .accordion-item:last-of-type .accordion-divider { display: none; }
+        [data-sdl-plugin="accordions"] .accordion-item__title-wrapper {
+            margin: 0; padding: 0;
+            background-color: var(--sdl-accordion-title-background, transparent);
+            opacity: var(--sdl-accordion-title-opacity, 1); transition: opacity 0.2s ease;
+        }
+        [data-sdl-plugin="accordions"] .accordion-item__title-wrapper:hover { --sdl-accordion-title-opacity: 0.7; }
+        [data-sdl-plugin="accordions"] .accordion-item__title {
+            flex: 1; margin: 0; font-size: 1.1rem; font-weight: 600;
+            color: var(--sdl-accordion-title-color, #1C1C1E);
+        }
+        [data-sdl-plugin="accordions"] .accordion-item__title-description {
+            display: block; font-size: var(--sdl-accordion-description-font-size, 0.9rem);
+            line-height: 1.2; color: var(--sdl-accordion-description-color, #777);
+            opacity: 0.7; font-weight: 400; margin-top: 4px;
+        }
+        [data-sdl-plugin="accordions"] [data-accordion-title-alignment="center"][data-accordion-icon-placement="right"] .accordion-item__title { text-align: center; padding-left: calc(var(--sdl-accordion-icon-size, 14px) * 2); }
+        [data-sdl-plugin="accordions"] [data-accordion-title-alignment="center"][data-accordion-icon-placement="left"] .accordion-item__title { text-align: center; padding-right: calc(var(--sdl-accordion-icon-size, 14px) * 2); }
+        [data-sdl-plugin="accordions"] [data-accordion-title-alignment="right"] .accordion-item__title { text-align: right; }
+        [data-sdl-plugin="accordions"] .accordion-item__click-target {
+            padding-top: var(--sdl-accordion-title-padding-top, 14px);
+            padding-bottom: var(--sdl-accordion-title-padding-bottom, 14px);
+            padding-left: var(--sdl-accordion-title-padding-left, 0px);
+            padding-right: var(--sdl-accordion-title-padding-right, 0px);
+            box-sizing: border-box; width: 100%; background: transparent; border: none;
+            -webkit-appearance: none; font-family: inherit; color: inherit; cursor: pointer; touch-action: manipulation;
+        }
+        [data-sdl-plugin="accordions"] .max-width-span {
+            display: flex; align-items: center; justify-content: space-between;
+            text-align: left; gap: var(--sdl-accordion-icon-size, 14px);
+        }
+        [data-sdl-plugin="accordions"] [data-accordion-icon-placement="left"] .accordion-item__click-target .max-width-span { flex-direction: row-reverse; }
+        [data-sdl-plugin="accordions"] .max-width-span > * { margin: 0; }
+        [data-sdl-plugin="accordions"] .sdl-accordion-item > .accordion-item__dropdown {
+            box-sizing: border-box; max-height: 0px; overflow: hidden; transition: max-height 0.35s ease-in-out;
+        }
+        [data-sdl-plugin="accordions"] .accordion-item__description {
+            box-sizing: border-box; padding: 4px 0 18px; color: #555; line-height: 1.6; font-size: 0.95rem;
+        }
+        [data-sdl-plugin="accordions"] [data-accordion-description-placement="center"] .accordion-item__description { margin-left: auto; margin-right: auto; }
+        [data-sdl-plugin="accordions"] [data-accordion-description-placement="right"] .accordion-item__description { margin-left: auto; }
+        [data-sdl-plugin="accordions"] [data-accordion-description-alignment="center"] .accordion-item__description { text-align: center; }
+        [data-sdl-plugin="accordions"] [data-accordion-description-alignment="right"] .accordion-item__description { text-align: right; }
+        [data-sdl-plugin="accordions"] .accordion-item__description > :first-of-type { margin-top: 0; }
+        [data-sdl-plugin="accordions"] .accordion-item__description > :last-of-type { margin-bottom: 0; }
+        [data-sdl-plugin="accordions"] .sdl-accordion-item > .accordion-item__title-wrapper .accordion-icon-container {
+            position: relative; height: var(--sdl-accordion-icon-size, 14px); width: var(--sdl-accordion-icon-size, 14px); flex-shrink: 0;
+        }
+        [data-sdl-plugin="accordions"] .sdl-accordion-item > .accordion-item__title-wrapper .accordion-icon-container > * {
+            position: absolute; width: 100%; height: 100%; left: 0; top: 0; display: flex; justify-content: center; align-items: center;
+        }
+        [data-sdl-plugin="accordions"] .sdl-accordion-item > .accordion-item__title-wrapper .plus__horizontal-line,
+        [data-sdl-plugin="accordions"] .sdl-accordion-item > .accordion-item__title-wrapper .plus__vertical-line {
+            height: var(--sdl-accordion-icon-thickness, 1px); display: block; width: 100%;
+            background-color: var(--sdl-accordion-icon-color, currentColor); transition: transform 0.2s; position: absolute;
+        }
+        [data-sdl-plugin="accordions"] .sdl-accordion-item > .accordion-item__title-wrapper .plus__vertical-line { transform: rotate(90deg); }
+        [data-sdl-plugin="accordions"] .sdl-accordion-item[data-is-open="true"] > .accordion-item__title-wrapper .plus__vertical-line { transform: rotate(0deg); }
+        [data-sdl-plugin="accordions"] .sdl-accordion-item > .accordion-item__title-wrapper .arrow-container { transition: transform 0.2s; }
+        [data-sdl-plugin="accordions"] .sdl-accordion-item[data-is-open="true"] > .accordion-item__title-wrapper .arrow-container { transform: rotate(-180deg); }
+        [data-sdl-plugin="accordions"] .sdl-accordion-item > .accordion-item__title-wrapper .arrow {
+            border-color: var(--sdl-accordion-icon-color, currentColor); border-style: solid;
+            border-width: var(--sdl-accordion-icon-thickness, 1px); border-top: none; border-left: none;
+            box-sizing: border-box; transform: translatey(-25%) rotate(45deg); width: 70.71067%; height: 70.71067%;
+        }
+        [data-sdl-plugin="accordions"][data-custom-icon] .sdl-accordion-item > .accordion-item__title-wrapper .accordion-icon-container > * { transition: transform 0.35s ease-in-out; }
+        [data-sdl-plugin="accordions"][data-custom-icon] .sdl-accordion-item[data-is-open="true"] > .accordion-item__title-wrapper .accordion-icon-container > * { transform: rotate(var(--sdl-accordion-custom-icon-rotation, 180deg)); }
+        [data-sdl-plugin="accordions"] .accordion-icon-container svg { width: 100%; height: 100%; }
+    </style>
+</head>
+<body class="tab-edit">
+
+    <!-- ======================= SIDEBAR ======================= -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>
+                <span class="brand-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </span>
+                Accordion Pro
+            </h2>
+            <span class="badge">v1.0</span>
+            <button class="copy-btn mobile-copy-btn" id="mobileCopyBtn" onclick="copyCode()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                Copy
+            </button>
+        </div>
+
+        <div class="sidebar-content">
+
+            <!-- CONTENT & SOURCE -->
+            <div class="group open">
+                <div class="group-header" onclick="togGroup(this)">Content &amp; Source</div>
+                <div class="group-body">
+                    <div class="control-row">
+                        <label>Installation Method</label>
+                        <select id="installMethod">
+                            <option value="source">Collection (Source)</option>
+                            <option value="elements">Page Sections (Elements)</option>
+                        </select>
+                        <div class="helper-text" id="installHelper"></div>
+                    </div>
+                    <div class="control-row" id="sourceRow">
+                        <label>Collection URL Slug</label>
+                        <input type="text" id="source" value="/faq" placeholder="/faq">
+                        <div class="helper-text">URL slug of the Squarespace collection to pull items from.</div>
+                    </div>
+                    <div class="control-row" id="elementsRow" style="display:none;">
+                        <label>Panel Titles (one per line)</label>
+                        <input type="text" id="elementTitles" value="About Us, Our Work, Contact">
+                        <div class="helper-text">Comma-separated. Each maps to the next page section after the Code Block.</div>
+                    </div>
+                    <div class="control-row">
+                        <label>Heading Tag</label>
+                        <select id="titleTag">
+                            <option value="h1">H1</option>
+                            <option value="h2">H2</option>
+                            <option value="h3">H3</option>
+                            <option value="h4" selected>H4</option>
+                            <option value="h5">H5</option>
+                            <option value="h6">H6</option>
+                        </select>
+                    </div>
+                    <div class="control-row">
+                        <label>Accordion Limit</label>
+                        <input type="number" id="accordionLimit" value="0" min="0">
+                        <div class="helper-text">Max items to render. 0 = no limit.</div>
+                    </div>
+                    <div class="toggle-row"><label>Show Title Descriptions</label><input type="checkbox" id="titleDescriptions"></div>
+                </div>
+            </div>
+
+            <!-- BEHAVIOUR -->
+            <div class="group open">
+                <div class="group-header" onclick="togGroup(this)">Behaviour</div>
+                <div class="group-body">
+                    <div class="toggle-row"><label>Allow Multiple Open</label><input type="checkbox" id="allowMultipleOpen"></div>
+                    <div class="control-row">
+                        <label>Initially Open</label>
+                        <select id="initialOpen">
+                            <option value="false">None</option>
+                            <option value="first">First Item</option>
+                            <option value="all">All Items</option>
+                            <option value="number">Specific Item #</option>
+                        </select>
+                    </div>
+                    <div class="control-row" id="initialNumberRow" style="display:none;">
+                        <label>Item Number (1-based)</label>
+                        <input type="number" id="initialOpenNumber" value="1" min="1">
+                    </div>
+                    <div class="toggle-row"><label>Scroll To Open Content</label><input type="checkbox" id="scrollToOpenContent" checked></div>
+                    <div class="toggle-row"><label>Update URL On Open</label><input type="checkbox" id="updateUrl"></div>
+                </div>
+            </div>
+
+            <!-- ICON -->
+            <div class="group">
+                <div class="group-header" onclick="togGroup(this)">Icon</div>
+                <div class="group-body">
+                    <div class="control-row">
+                        <label>Icon Style</label>
+                        <select id="iconStyle">
+                            <option value="plus">Plus</option>
+                            <option value="arrow">Arrow</option>
+                            <option value="custom">Custom SVG</option>
+                            <option value="none">None</option>
+                        </select>
+                    </div>
+                    <div class="control-row" id="customIconRow" style="display:none;">
+                        <label>Custom Icon (HTML / SVG)</label>
+                        <input type="text" id="customIconSvg" value='<svg viewBox=&quot;0 0 14 14&quot;><path d=&quot;M7 0v14M0 7h14&quot; stroke=&quot;currentColor&quot;/></svg>'>
+                    </div>
+                    <div class="control-row" id="customRotationRow" style="display:none;">
+                        <label>Custom Icon Rotation (deg, when open)</label>
+                        <input type="number" id="customIconRotation" value="180">
+                    </div>
+                    <div class="control-row">
+                        <label>Icon Placement</label>
+                        <select id="iconPlacement">
+                            <option value="right" selected>Right</option>
+                            <option value="left">Left</option>
+                        </select>
+                    </div>
+                    <div class="row-2">
+                        <div><label>Icon Size (px)</label><input type="number" id="iconSize" value="14" min="6"></div>
+                        <div><label>Thickness (px)</label><input type="number" id="iconThickness" value="1" min="1"></div>
+                    </div>
+                    <div class="color-row" style="margin-top:10px;"><span class="color-label">Icon Colour</span><input type="color" id="iconColor" value="#1c1c1e"></div>
+                </div>
+            </div>
+
+            <!-- DIVIDERS -->
+            <div class="group">
+                <div class="group-header" onclick="togGroup(this)">Dividers</div>
+                <div class="group-body">
+                    <div class="toggle-row"><label>Dividers Enabled</label><input type="checkbox" id="dividersEnabled" checked></div>
+                    <div class="toggle-row"><label>Show First Divider</label><input type="checkbox" id="dividersShowFirst" checked></div>
+                    <div class="toggle-row"><label>Show Last Divider</label><input type="checkbox" id="dividersShowLast" checked></div>
+                    <div class="color-row"><span class="color-label">Divider Colour</span><input type="color" id="dividerColor" value="#e2e2e2"></div>
+                    <div class="row-2">
+                        <div><label>Height (px)</label><input type="number" id="dividerHeight" value="1" min="0"></div>
+                        <div><label>Opacity (0-1)</label><input type="number" id="dividerOpacity" value="1" min="0" max="1" step="0.1"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TITLE & LAYOUT -->
+            <div class="group">
+                <div class="group-header" onclick="togGroup(this)">Title &amp; Layout</div>
+                <div class="group-body">
+                    <div class="control-row">
+                        <label>Title Alignment</label>
+                        <select id="titleAlignment">
+                            <option value="left" selected>Left</option>
+                            <option value="center">Center</option>
+                            <option value="right">Right</option>
+                        </select>
+                    </div>
+                    <div class="color-row"><span class="color-label">Title Colour</span><input type="color" id="titleColor" value="#1c1c1e"></div>
+                    <div class="toggle-row"><label>Title Background</label><input type="checkbox" id="titleBgEnabled"></div>
+                    <div class="color-row" id="titleBgRow" style="display:none;"><span class="color-label">Background Colour</span><input type="color" id="titleBg" value="#f5f5f5"></div>
+                    <label style="margin-top:6px;">Title Padding (px)</label>
+                    <div class="row-4">
+                        <div><label>Top</label><input type="number" id="padTop" value="16"></div>
+                        <div><label>Bottom</label><input type="number" id="padBottom" value="16"></div>
+                        <div><label>Left</label><input type="number" id="padLeft" value="0"></div>
+                        <div><label>Right</label><input type="number" id="padRight" value="0"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ITEM STYLE -->
+            <div class="group">
+                <div class="group-header" onclick="togGroup(this)">Item Card Style</div>
+                <div class="group-body">
+                    <div class="row-2">
+                        <div><label>Border Width (px)</label><input type="number" id="itemBorderWidth" value="0" min="0"></div>
+                        <div><label>Border Radius (px)</label><input type="number" id="itemBorderRadius" value="0" min="0"></div>
+                    </div>
+                    <div class="control-row" style="margin-top:10px;">
+                        <label>Border Style</label>
+                        <select id="itemBorderStyle">
+                            <option value="solid" selected>Solid</option>
+                            <option value="dashed">Dashed</option>
+                            <option value="dotted">Dotted</option>
+                        </select>
+                    </div>
+                    <div class="color-row"><span class="color-label">Border Colour</span><input type="color" id="itemBorderColor" value="#e2e2e2"></div>
+                    <div class="control-row"><label>Spacing Between Items (px)</label><input type="number" id="itemSpacing" value="0" min="0"></div>
+                </div>
+            </div>
+
+            <!-- PANEL CONTENT -->
+            <div class="group">
+                <div class="group-header" onclick="togGroup(this)">Panel Content</div>
+                <div class="group-body">
+                    <div class="control-row">
+                        <label>Content Placement</label>
+                        <select id="descPlacement">
+                            <option value="left" selected>Left</option>
+                            <option value="center">Center</option>
+                            <option value="right">Right</option>
+                        </select>
+                    </div>
+                    <div class="control-row">
+                        <label>Content Text Alignment</label>
+                        <select id="descAlignment">
+                            <option value="left" selected>Left</option>
+                            <option value="center">Center</option>
+                            <option value="right">Right</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADVANCED -->
+            <div class="group">
+                <div class="group-header" onclick="togGroup(this)">Advanced</div>
+                <div class="group-body">
+                    <div class="control-row">
+                        <label>Append After Build (CSS selector)</label>
+                        <input type="text" id="appendAfterBuild" placeholder=".ProductItem-details-checkout">
+                        <div class="helper-text">Move the accordion into a target element after build (e.g. product pages). Leave blank to disable.</div>
+                    </div>
+                    <div class="control-row">
+                        <label>CDN Base URL</label>
+                        <input type="text" id="cdnBase" value="https://cdn.jsdelivr.net/gh/square-design-lab/Accordion-Pro">
+                        <div class="helper-text">Where accordion.js and accordion.css are hosted.</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </aside>
+
+    <!-- ======================= MAIN ======================= -->
+    <main class="main-content">
+        <div class="topbar">
+            <div class="device-toggle">
+                <button id="desktopToggle" class="active" onclick="setDev('desktop')">Desktop</button>
+                <button id="mobileToggle" onclick="setDev('mobile')">Mobile</button>
+            </div>
+            <button class="copy-btn" id="copyBtn" onclick="copyCode()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                Copy Code
+            </button>
+        </div>
+
+        <div class="preview-container">
+            <div id="previewFrame">
+                <div class="preview-eyebrow">Live Preview</div>
+                <div data-sdl-plugin="accordions" id="previewAccordion"></div>
+            </div>
+        </div>
+
+        <div class="code-drawer">
+            <div class="drawer-header"><h3>Installation Code</h3></div>
+            <pre id="codeOutput"></pre>
+        </div>
+    </main>
+
+    <!-- ======================= MOBILE TABS ======================= -->
+    <nav class="mobile-tabs">
+        <button class="tab-btn active" onclick="setTab('edit')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            Settings
+        </button>
+        <button class="tab-btn" onclick="setTab('preview')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            Preview
+        </button>
+        <button class="tab-btn" onclick="setTab('code')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+            Code
+        </button>
+    </nav>
+
+    <script>
+    (function () {
+        "use strict";
+
+        var SAMPLE = [
+            { title: 'What is your return policy?', desc: 'Everything about getting your order back', body: 'We accept returns within 30 days of delivery. Items must be unused and in their original packaging. Refunds are processed to your original payment method within 5 business days.' },
+            { title: 'How long does shipping take?', desc: 'Delivery times and carriers', body: 'Domestic orders ship within 2 business days and arrive in 3–5 days. Expedited options are available at checkout.' },
+            { title: 'Do you ship internationally?', desc: 'Where we deliver', body: 'Yes — we ship to over 60 countries worldwide. Duties and taxes are calculated at checkout where applicable.' },
+            { title: 'How can I track my order?', desc: 'Following your package', body: 'As soon as your order ships you will receive an email with a tracking link so you can follow it every step of the way.' }
+        ];
+
+        var rawCode = '';
+        var $ = function (id) { return document.getElementById(id); };
+
+        function val(id) { return $(id) ? $(id).value : ''; }
+        function num(id, def) { var n = parseFloat(val(id)); return isNaN(n) ? def : n; }
+        function checked(id) { return $(id) ? $(id).checked : false; }
+
+        function slugify(s) {
+            return String(s || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+        }
+
+        var ICONS = {
+            plus: '<div class="plus"><div class="plus__horizontal-line"></div><div class="plus__vertical-line"></div></div>',
+            arrow: '<div class="arrow-container"><div class="arrow"></div></div>'
+        };
+
+        /* ---------------- Read settings from the sidebar ---------------- */
+        function readConfig() {
+            var initSel = val('initialOpen');
+            var initialOpen = initSel;
+            if (initSel === 'number') initialOpen = String(Math.max(1, num('initialOpenNumber', 1)));
+            if (initSel === 'false') initialOpen = false;
+
+            var iconStyle = val('iconStyle');
+            var titles = val('elementTitles').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+
+            return {
+                installMethod: val('installMethod'),
+                source: val('source'),
+                elementTitles: titles.length ? titles : ['Panel One', 'Panel Two'],
+                titleTag: val('titleTag'),
+                accordionLimit: Math.max(0, num('accordionLimit', 0)),
+                titleDescriptions: checked('titleDescriptions'),
+
+                allowMultipleOpen: checked('allowMultipleOpen'),
+                initialOpenSel: initSel,
+                initialOpen: initialOpen,
+                scrollToOpenContent: checked('scrollToOpenContent'),
+                updateUrl: checked('updateUrl'),
+
+                iconStyle: iconStyle,
+                customIconSvg: val('customIconSvg'),
+                customIconRotation: num('customIconRotation', 180),
+                iconPlacement: val('iconPlacement'),
+                iconSize: num('iconSize', 14),
+                iconThickness: num('iconThickness', 1),
+                iconColor: val('iconColor'),
+
+                dividersEnabled: checked('dividersEnabled'),
+                dividersShowFirst: checked('dividersShowFirst'),
+                dividersShowLast: checked('dividersShowLast'),
+                dividerColor: val('dividerColor'),
+                dividerHeight: num('dividerHeight', 1),
+                dividerOpacity: num('dividerOpacity', 1),
+
+                titleAlignment: val('titleAlignment'),
+                titleColor: val('titleColor'),
+                titleBgEnabled: checked('titleBgEnabled'),
+                titleBg: val('titleBg'),
+                padTop: num('padTop', 16),
+                padBottom: num('padBottom', 16),
+                padLeft: num('padLeft', 0),
+                padRight: num('padRight', 0),
+
+                itemBorderWidth: num('itemBorderWidth', 0),
+                itemBorderRadius: num('itemBorderRadius', 0),
+                itemBorderStyle: val('itemBorderStyle'),
+                itemBorderColor: val('itemBorderColor'),
+                itemSpacing: num('itemSpacing', 0),
+
+                descPlacement: val('descPlacement'),
+                descAlignment: val('descAlignment'),
+
+                appendAfterBuild: val('appendAfterBuild').trim(),
+                cdnBase: val('cdnBase').trim().replace(/\/+$/, '')
+            };
+        }
+
+        /* ---------------- Conditional sidebar rows ---------------- */
+        function syncSidebarVisibility(cfg) {
+            $('sourceRow').style.display = cfg.installMethod === 'source' ? 'block' : 'none';
+            $('elementsRow').style.display = cfg.installMethod === 'elements' ? 'block' : 'none';
+            $('installHelper').textContent = cfg.installMethod === 'source'
+                ? 'Pulls items from a Squarespace collection (Blog, Portfolio, etc.).'
+                : 'Wraps the page sections that follow the Code Block into panels.';
+            $('initialNumberRow').style.display = cfg.initialOpenSel === 'number' ? 'block' : 'none';
+            $('customIconRow').style.display = cfg.iconStyle === 'custom' ? 'block' : 'none';
+            $('customRotationRow').style.display = cfg.iconStyle === 'custom' ? 'block' : 'none';
+            $('titleBgRow').style.display = cfg.titleBgEnabled ? 'flex' : 'none';
+        }
+
+        /* ---------------- Build the live preview ---------------- */
+        function buildPreview(cfg) {
+            var container = $('previewAccordion');
+            container.innerHTML = '';
+
+            // Container-level data attributes & CSS variables.
+            if (cfg.iconStyle === 'custom') container.setAttribute('data-custom-icon', 'custom');
+            else container.removeAttribute('data-custom-icon');
+            if (cfg.descPlacement !== 'left') container.setAttribute('data-accordion-description-placement', cfg.descPlacement);
+            else container.removeAttribute('data-accordion-description-placement');
+            if (cfg.descAlignment !== 'left') container.setAttribute('data-accordion-description-alignment', cfg.descAlignment);
+            else container.removeAttribute('data-accordion-description-alignment');
+
+            var s = container.style;
+            s.setProperty('--sdl-accordion-icon-size', cfg.iconSize + 'px');
+            s.setProperty('--sdl-accordion-icon-thickness', cfg.iconThickness + 'px');
+            s.setProperty('--sdl-accordion-icon-color', cfg.iconColor);
+            s.setProperty('--sdl-accordion-custom-icon-rotation', cfg.customIconRotation + 'deg');
+            s.setProperty('--sdl-accordion-divider-color', cfg.dividerColor);
+            s.setProperty('--sdl-accordion-divider-height', cfg.dividerHeight + 'px');
+            s.setProperty('--sdl-accordion-divider-opacity', cfg.dividerOpacity);
+            s.setProperty('--sdl-accordion-item-border-width', cfg.itemBorderWidth + 'px');
+            s.setProperty('--sdl-accordion-item-border-style', cfg.itemBorderStyle);
+            s.setProperty('--sdl-accordion-item-border-color', cfg.itemBorderColor);
+            s.setProperty('--sdl-accordion-item-border-radius', cfg.itemBorderRadius + 'px');
+            s.setProperty('--sdl-accordion-item-space-between', cfg.itemSpacing + 'px');
+            s.setProperty('--sdl-accordion-title-color', cfg.titleColor);
+            s.setProperty('--sdl-accordion-title-padding-top', cfg.padTop + 'px');
+            s.setProperty('--sdl-accordion-title-padding-bottom', cfg.padBottom + 'px');
+            s.setProperty('--sdl-accordion-title-padding-left', cfg.padLeft + 'px');
+            s.setProperty('--sdl-accordion-title-padding-right', cfg.padRight + 'px');
+            if (cfg.titleBgEnabled) s.setProperty('--sdl-accordion-title-background', cfg.titleBg);
+            else s.removeProperty('--sdl-accordion-title-background');
+
+            // Item dataset.
+            var items = SAMPLE.slice();
+            if (cfg.installMethod === 'elements') {
+                items = cfg.elementTitles.map(function (t, i) {
+                    var src = SAMPLE[i % SAMPLE.length];
+                    return { title: t, desc: src.desc, body: 'Content of the “' + t + '” page section is moved into this panel — galleries, text, embeds and all.' };
+                });
+            }
+            if (cfg.accordionLimit > 0) items = items.slice(0, cfg.accordionLimit);
+
+            var ul = document.createElement('ul');
+            ul.className = 'accordion-items-container';
+            ul.dataset.accordionTitleAlignment = cfg.titleAlignment;
+            ul.dataset.accordionIconPlacement = cfg.iconPlacement;
+            ul.dataset.isLastDividerVisible = String(cfg.dividersShowLast);
+            container.appendChild(ul);
+
+            // Resolve which items open initially.
+            var openSet = {};
+            if (cfg.initialOpen === 'first') openSet[0] = true;
+            else if (cfg.initialOpen === 'all') {
+                if (cfg.allowMultipleOpen) items.forEach(function (_, i) { openSet[i] = true; });
+                else openSet[0] = true;
+            } else if (typeof cfg.initialOpen === 'string' && /^\d+$/.test(cfg.initialOpen)) {
+                openSet[parseInt(cfg.initialOpen, 10) - 1] = true;
+            }
+
+            items.forEach(function (item, index) {
+                var isFirst = index === 0;
+                var isLast = index === items.length - 1;
+                var isOpen = !!openSet[index];
+
+                var li = document.createElement('li');
+                li.className = 'accordion-item sdl-accordion-item';
+                li.dataset.accordionId = slugify(item.title);
+                li.dataset.isOpen = isOpen ? 'true' : 'false';
+
+                if (cfg.dividersEnabled && isFirst && cfg.dividersShowFirst) {
+                    li.appendChild(makeDivider('accordion-divider accordion-divider--top'));
+                }
+
+                var heading = document.createElement(cfg.titleTag);
+                heading.className = 'accordion-item__title-wrapper';
+                heading.setAttribute('role', 'heading');
+                heading.setAttribute('aria-level', '3');
+
+                var btn = document.createElement('button');
+                btn.className = 'accordion-item__click-target';
+                btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+
+                var maxSpan = document.createElement('span');
+                maxSpan.className = 'max-width-span';
+
+                var titleSpan = document.createElement('span');
+                titleSpan.className = 'accordion-item__title';
+                titleSpan.textContent = item.title;
+                if (cfg.titleDescriptions) {
+                    var d = document.createElement('span');
+                    d.className = 'accordion-item__title-description';
+                    d.textContent = item.desc;
+                    titleSpan.appendChild(d);
+                }
+                maxSpan.appendChild(titleSpan);
+
+                if (cfg.iconStyle && cfg.iconStyle !== 'none') {
+                    var iconWrap = document.createElement('div');
+                    iconWrap.className = 'accordion-icon-container';
+                    iconWrap.setAttribute('aria-hidden', 'true');
+                    iconWrap.innerHTML = cfg.iconStyle === 'custom'
+                        ? decodeAttr(cfg.customIconSvg)
+                        : (ICONS[cfg.iconStyle] || '');
+                    maxSpan.appendChild(iconWrap);
+                }
+
+                btn.appendChild(maxSpan);
+                heading.appendChild(btn);
+                li.appendChild(heading);
+
+                var dropdown = document.createElement('div');
+                dropdown.className = 'accordion-item__dropdown';
+                dropdown.style.maxHeight = isOpen ? 'none' : '0px';
+                var descDiv = document.createElement('div');
+                descDiv.className = 'accordion-item__description';
+                descDiv.innerHTML = '<p>' + item.body + '</p>';
+                dropdown.appendChild(descDiv);
+                li.appendChild(dropdown);
+
+                if (cfg.dividersEnabled && (!isLast || cfg.dividersShowLast)) {
+                    li.appendChild(makeDivider('accordion-divider'));
+                }
+
+                ul.appendChild(li);
+
+                btn.addEventListener('click', function () { togglePanel(cfg, ul, li); });
+            });
+        }
+
+        function makeDivider(cls) {
+            var d = document.createElement('div');
+            d.className = cls;
+            d.setAttribute('aria-hidden', 'true');
+            return d;
+        }
+
+        function decodeAttr(s) {
+            var t = document.createElement('textarea');
+            t.innerHTML = s;
+            return t.value;
+        }
+
+        /* ---------------- Open / close in preview ---------------- */
+        function setOpen(li, open) {
+            var dropdown = li.querySelector('.accordion-item__dropdown');
+            var desc = li.querySelector('.accordion-item__description');
+            var btn = li.querySelector('.accordion-item__click-target');
+            if (open) {
+                dropdown.style.maxHeight = desc.scrollHeight + 'px';
+                li.dataset.isOpen = 'true';
+                btn.setAttribute('aria-expanded', 'true');
+                window.setTimeout(function () { if (li.dataset.isOpen === 'true') dropdown.style.maxHeight = 'none'; }, 360);
+            } else {
+                dropdown.style.maxHeight = desc.scrollHeight + 'px';
+                void dropdown.offsetHeight;
+                dropdown.style.maxHeight = '0px';
+                li.dataset.isOpen = 'false';
+                btn.setAttribute('aria-expanded', 'false');
+            }
+        }
+
+        function togglePanel(cfg, ul, li) {
+            var isOpen = li.dataset.isOpen === 'true';
+            if (!cfg.allowMultipleOpen && !isOpen) {
+                ul.querySelectorAll('.sdl-accordion-item').forEach(function (other) {
+                    if (other !== li && other.dataset.isOpen === 'true') setOpen(other, false);
+                });
+            }
+            setOpen(li, !isOpen);
+        }
+
+        /* ---------------- Generate the installation code ---------------- */
+        function buildVars(cfg) {
+            var v = [];
+            function push(name, value) { v.push('  ' + name + ': ' + value + ';'); }
+            if (cfg.iconSize !== 14) push('--sdl-accordion-icon-size', cfg.iconSize + 'px');
+            if (cfg.iconThickness !== 1) push('--sdl-accordion-icon-thickness', cfg.iconThickness + 'px');
+            if (cfg.iconColor.toLowerCase() !== '#1c1c1e') push('--sdl-accordion-icon-color', cfg.iconColor);
+            if (cfg.iconStyle === 'custom' && cfg.customIconRotation !== 180) push('--sdl-accordion-custom-icon-rotation', cfg.customIconRotation + 'deg');
+            if (cfg.dividerColor.toLowerCase() !== '#e2e2e2') push('--sdl-accordion-divider-color', cfg.dividerColor);
+            if (cfg.dividerHeight !== 1) push('--sdl-accordion-divider-height', cfg.dividerHeight + 'px');
+            if (cfg.dividerOpacity !== 1) push('--sdl-accordion-divider-opacity', cfg.dividerOpacity);
+            if (cfg.titleColor.toLowerCase() !== '#1c1c1e') push('--sdl-accordion-title-color', cfg.titleColor);
+            if (cfg.titleBgEnabled) push('--sdl-accordion-title-background', cfg.titleBg);
+            if (cfg.padTop !== 14) push('--sdl-accordion-title-padding-top', cfg.padTop + 'px');
+            if (cfg.padBottom !== 14) push('--sdl-accordion-title-padding-bottom', cfg.padBottom + 'px');
+            if (cfg.padLeft !== 0) push('--sdl-accordion-title-padding-left', cfg.padLeft + 'px');
+            if (cfg.padRight !== 0) push('--sdl-accordion-title-padding-right', cfg.padRight + 'px');
+            if (cfg.itemBorderWidth !== 0) push('--sdl-accordion-item-border-width', cfg.itemBorderWidth + 'px');
+            if (cfg.itemBorderStyle !== 'solid') push('--sdl-accordion-item-border-style', cfg.itemBorderStyle);
+            if (cfg.itemBorderColor.toLowerCase() !== '#e2e2e2') push('--sdl-accordion-item-border-color', cfg.itemBorderColor);
+            if (cfg.itemBorderRadius !== 0) push('--sdl-accordion-item-border-radius', cfg.itemBorderRadius + 'px');
+            if (cfg.itemSpacing !== 0) push('--sdl-accordion-item-space-between', cfg.itemSpacing + 'px');
+            return v;
+        }
+
+        function buildDataAttrs(cfg) {
+            var a = [];
+            a.push('data-sdl-plugin="accordions"');
+            if (cfg.installMethod === 'source') a.push('data-source="' + (cfg.source || '/faq') + '"');
+            if (cfg.accordionLimit > 0) a.push('data-accordion-limit="' + cfg.accordionLimit + '"');
+            if (cfg.allowMultipleOpen) a.push('data-allow-multiple-open="true"');
+            if (cfg.initialOpen !== false) a.push('data-initial-open="' + cfg.initialOpen + '"');
+            if (cfg.titleDescriptions) a.push('data-title-descriptions="true"');
+            if (cfg.iconStyle !== 'plus') a.push('data-icon-style="' + cfg.iconStyle + '"');
+            if (cfg.iconPlacement !== 'right') a.push('data-icon-placement="' + cfg.iconPlacement + '"');
+            if (cfg.titleAlignment !== 'left') a.push('data-accordion-title-alignment="' + cfg.titleAlignment + '"');
+            if (cfg.titleTag !== 'h4') a.push('data-title-tag="' + cfg.titleTag + '"');
+            if (!cfg.dividersEnabled) a.push('data-dividers-enabled="false"');
+            if (!cfg.dividersShowFirst) a.push('data-dividers-show-first="false"');
+            if (!cfg.dividersShowLast) a.push('data-dividers-show-last="false"');
+            if (!cfg.scrollToOpenContent) a.push('data-scroll-to-open-content="false"');
+            if (cfg.updateUrl) a.push('data-update-url="true"');
+            if (cfg.descPlacement !== 'left') a.push('data-accordion-description-placement="' + cfg.descPlacement + '"');
+            if (cfg.descAlignment !== 'left') a.push('data-accordion-description-alignment="' + cfg.descAlignment + '"');
+            if (cfg.appendAfterBuild) a.push('data-append-after-build="' + cfg.appendAfterBuild + '"');
+            return a;
+        }
+
+        function generateCode(cfg) {
+            var lines = [];
+            var vars = buildVars(cfg);
+            if (vars.length) {
+                lines.push('<style>');
+                lines.push('[data-sdl-plugin="accordions"] {');
+                lines = lines.concat(vars);
+                lines.push('}');
+                lines.push('</style>');
+                lines.push('');
+            }
+
+            var attrs = buildDataAttrs(cfg);
+            var divOpen = '<div';
+            attrs.forEach(function (attr) { divOpen += '\n  ' + attr; });
+
+            if (cfg.installMethod === 'elements') {
+                lines.push(divOpen + '>');
+                cfg.elementTitles.forEach(function (t) {
+                    lines.push('  <button>' + t + '</button>');
+                });
+                lines.push('</div>');
+                lines.push('');
+                lines.push('<!-- Place each target page Section directly after this Code Block, in order. -->');
+            } else {
+                lines.push(divOpen + '>');
+                lines.push('</div>');
+            }
+
+            lines.push('');
+            var base = cfg.cdnBase || 'https://cdn.jsdelivr.net/gh/square-design-lab/Accordion-Pro';
+            lines.push('<link rel="stylesheet" href="' + base + '/accordion.css">');
+
+            if (cfg.iconStyle === 'custom') {
+                lines.push('<script>');
+                lines.push('  window.sdlAccordionsSettings = {');
+                lines.push('    icons: { custom: ' + JSON.stringify(decodeAttr(cfg.customIconSvg)) + ' }');
+                lines.push('  };');
+                lines.push('<\/script>');
+            }
+
+            lines.push('<script src="' + base + '/accordion.js" defer><\/script>');
+
+            rawCode = lines.join('\n');
+            $('codeOutput').innerHTML = highlight(rawCode);
+        }
+
+        /* ---------------- Syntax highlighting ---------------- */
+        function highlight(text) {
+            var esc = function (s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+            return text.split('\n').map(function (line) {
+                var e = esc(line);
+                if (/^\s*&lt;!--/.test(e)) return '<span class="hl-comment">' + e + '</span>';
+                // attributes  name="value"
+                e = e.replace(/([\w-]+)=(&quot;|")(.*?)(&quot;|")/g, function (m, name, q1, value, q2) {
+                    return '<span class="hl-attr">' + name + '</span>=<span class="hl-str">"' + value + '"</span>';
+                });
+                // tag names
+                e = e.replace(/(&lt;\/?)([\w-]+)/g, function (m, lt, tag) {
+                    return lt + '<span class="hl-tag">' + tag + '</span>';
+                });
+                // css custom props
+                e = e.replace(/(--[\w-]+)(:)/g, '<span class="hl-key">$1</span>$2');
+                return e;
+            }).join('\n');
+        }
+
+        /* ---------------- Orchestration ---------------- */
+        function updateAll() {
+            try {
+                var cfg = readConfig();
+                syncSidebarVisibility(cfg);
+                buildPreview(cfg);
+                generateCode(cfg);
+            } catch (e) {
+                $('codeOutput').textContent = 'Error: ' + e.message;
+                console.error(e);
+            }
+        }
+
+        /* ---------------- Global UI handlers ---------------- */
+        window.togGroup = function (h) { h.parentNode.classList.toggle('open'); };
+        window.setTab = function (t) {
+            document.body.className = 'tab-' + t;
+            document.querySelectorAll('.tab-btn').forEach(function (btn) {
+                btn.classList.toggle('active', btn.getAttribute('onclick') === "setTab('" + t + "')");
+            });
+        };
+        window.setDev = function (d) {
+            $('previewFrame').className = d === 'mobile' ? 'mobile' : '';
+            document.querySelectorAll('.device-toggle button').forEach(function (b) { b.classList.remove('active'); });
+            $(d + 'Toggle').classList.add('active');
+        };
+        window.copyCode = function () {
+            navigator.clipboard.writeText(rawCode);
+            var copiedHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Copied!';
+            ['copyBtn', 'mobileCopyBtn'].forEach(function (id) {
+                var btn = $(id);
+                if (!btn) return;
+                var original = btn.innerHTML;
+                btn.innerHTML = copiedHTML;
+                btn.classList.add('copied');
+                setTimeout(function () { btn.innerHTML = original; btn.classList.remove('copied'); }, 2000);
+            });
+        };
+
+        document.querySelectorAll('input, select').forEach(function (el) {
+            el.addEventListener('input', updateAll);
+            el.addEventListener('change', updateAll);
+        });
+
+        updateAll();
+    })();
+    </script>
+</body>
+</html>

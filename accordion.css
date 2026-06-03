@@ -1,0 +1,398 @@
+/* ==========================================================================
+   SDL Accordion Pro v1.0 — Styles
+   All visual aspects are controlled through CSS custom properties.
+   Set them on [data-sdl-plugin="accordions"], a parent section, or in your
+   Squarespace Custom CSS.
+   ========================================================================== */
+
+[data-sdl-plugin="accordions"] .accordion-items-container {
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+}
+
+[data-sdl-plugin="accordions"] .accordion-item {
+  padding: 0;
+  margin: 0;
+  position: relative;
+  overflow: hidden;
+  border-width: var(--sdl-accordion-item-border-width, 0px);
+  border-style: var(--sdl-accordion-item-border-style, solid);
+  border-color: var(--sdl-accordion-item-border-color, currentColor);
+  border-radius: var(--sdl-accordion-item-border-radius, 0px);
+}
+
+[data-sdl-plugin="accordions"] .accordion-item:not(:last-of-type) {
+  margin-bottom: var(--sdl-accordion-item-space-between, 0px);
+}
+
+[data-sdl-plugin="accordions"] .accordion-divider {
+  background-color: var(--sdl-accordion-divider-color, currentColor);
+  height: var(--sdl-accordion-divider-height, 1px);
+  opacity: var(--sdl-accordion-divider-opacity, 1);
+}
+
+[data-sdl-plugin="accordions"]
+  .accordion-items-container:not([data-is-last-divider-visible="true"])
+  .accordion-item:last-of-type
+  .accordion-divider {
+  display: none;
+}
+
+[data-sdl-plugin="accordions"] .accordion-item__title-wrapper {
+  margin: 0;
+  padding: 0;
+  background-color: var(--sdl-accordion-title-background, transparent);
+  opacity: var(--sdl-accordion-title-opacity, 1);
+  transition: opacity 0.2s ease;
+}
+[data-sdl-plugin="accordions"] .accordion-item__title-wrapper:hover {
+  --sdl-accordion-title-opacity: 0.7;
+}
+
+[data-sdl-plugin="accordions"] .accordion-item__title {
+  flex: 1;
+  font-family: var(
+    --sdl-accordion-title-font-family,
+    var(--heading-font-font-family)
+  );
+  font-style: var(
+    --sdl-accordion-title-font-style,
+    var(--heading-font-font-style)
+  );
+  font-weight: var(
+    --sdl-accordion-title-font-weight,
+    var(--heading-font-font-weight)
+  );
+  line-height: var(
+    --sdl-accordion-title-line-height,
+    var(--heading-font-line-height)
+  );
+  letter-spacing: var(
+    --sdl-accordion-title-letter-spacing,
+    var(--heading-font-letter-spacing)
+  );
+  text-transform: var(
+    --sdl-accordion-title-text-transform,
+    var(--heading-font-text-transform)
+  );
+}
+
+[data-sdl-plugin="accordions"] h1 .accordion-item__title {
+  color: var(--sdl-accordion-title-color, var(--headingExtraLargeColor));
+}
+[data-sdl-plugin="accordions"] h2 .accordion-item__title {
+  color: var(--sdl-accordion-title-color, var(--headingLargeColor));
+}
+[data-sdl-plugin="accordions"] h3 .accordion-item__title {
+  color: var(--sdl-accordion-title-color, var(--headingMediumColor));
+}
+[data-sdl-plugin="accordions"] h4 .accordion-item__title,
+[data-sdl-plugin="accordions"] h5 .accordion-item__title,
+[data-sdl-plugin="accordions"] h6 .accordion-item__title {
+  color: var(--sdl-accordion-title-color, var(--headingSmallColor));
+}
+
+[data-sdl-plugin="accordions"] .accordion-item__title-description {
+  content: var(--sdl-accordion-description, "");
+  display: block;
+  font-size: var(--sdl-accordion-description-font-size, 0.9rem);
+  line-height: 1;
+  color: var(
+    --sdl-accordion-description-color,
+    var(--paragraghMediumColor, #333)
+  );
+  opacity: 0.7;
+  font-family: var(
+    --sdl-accordion-description-font-family,
+    var(--body-font-font-family)
+  );
+  font-style: var(
+    --sdl-accordion-description-font-style,
+    var(--body-font-font-style)
+  );
+  font-weight: var(
+    --sdl-accordion-description-font-weight,
+    var(--body-font-font-weight)
+  );
+  line-height: var(
+    --sdl-accordion-description-line-height,
+    var(--body-font-line-height)
+  );
+  letter-spacing: var(
+    --sdl-accordion-description-letter-spacing,
+    var(--body-font-letter-spacing)
+  );
+  text-transform: var(
+    --sdl-accordion-description-text-transform,
+    var(--body-font-text-transform)
+  );
+}
+
+[data-sdl-plugin="accordions"]
+  [data-accordion-title-alignment="center"][data-accordion-icon-placement="right"]
+  .accordion-item__title {
+  text-align: center;
+  padding-left: calc(var(--sdl-accordion-icon-size, 14px) * 2);
+}
+[data-sdl-plugin="accordions"]
+  [data-accordion-title-alignment="center"][data-accordion-icon-placement="left"]
+  .accordion-item__title {
+  text-align: center;
+  padding-right: calc(var(--sdl-accordion-icon-size, 14px) * 2);
+}
+
+[data-sdl-plugin="accordions"]
+  [data-accordion-title-alignment="right"]
+  .accordion-item__title {
+  text-align: right;
+}
+
+[data-sdl-plugin="accordions"] .accordion-item__click-target {
+  padding-top: var(--sdl-accordion-title-padding-top, 14px);
+  padding-bottom: var(--sdl-accordion-title-padding-bottom, 14px);
+  padding-left: var(--sdl-accordion-title-padding-left, 0px);
+  padding-right: var(--sdl-accordion-title-padding-right, 0px);
+  box-sizing: border-box;
+  width: 100%;
+  background: transparent;
+  border: none;
+  -webkit-appearance: none;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  font-style: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+[data-sdl-plugin="accordions"] .max-width-span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  gap: var(--sdl-accordion-icon-size, 14px);
+}
+[data-sdl-plugin="accordions"][data-is-full-width="true"] .max-width-span {
+  max-width: var(--sqs-site-max-width);
+  margin: auto;
+  padding: 0 2vw;
+}
+@media (max-width: 768px) {
+  [data-sdl-plugin="accordions"][data-is-full-width="true"] .max-width-span {
+    padding: 0 6vw;
+  }
+}
+
+[data-sdl-plugin="accordions"]
+  [data-accordion-icon-placement="left"]
+  .accordion-item__click-target
+  .max-width-span {
+  flex-direction: row-reverse;
+}
+
+[data-sdl-plugin="accordions"] .max-width-span > * {
+  margin: 0;
+}
+
+[data-sdl-plugin="accordions"] .sdl-accordion-item > .accordion-item__dropdown {
+  box-sizing: border-box;
+  max-height: 0px;
+  overflow: hidden;
+  transition: max-height 0.35s ease-in-out;
+}
+[data-sdl-plugin="accordions"]
+  .accordion-item__dropdown
+  .page-section:first-child {
+  padding-top: 0px !important;
+}
+
+[data-sdl-plugin="accordions"] .accordion-item__dropdown--pre-open {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  visibility: hidden;
+  width: 100%;
+  transition: none;
+  height: auto;
+}
+
+[data-sdl-plugin="accordions"] .accordion-item__dropdown--open {
+  display: block;
+}
+
+[data-sdl-plugin="accordions"] .accordion-item__description {
+  box-sizing: border-box;
+}
+
+[data-sdl-plugin="accordions"]
+  [data-accordion-description-placement="center"]
+  .accordion-item__description {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+[data-sdl-plugin="accordions"]
+  [data-accordion-description-placement="right"]
+  .accordion-item__description {
+  margin-left: auto;
+}
+
+[data-sdl-plugin="accordions"]
+  [data-accordion-description-alignment="center"]
+  .accordion-item__description {
+  text-align: center;
+}
+
+[data-sdl-plugin="accordions"]
+  [data-accordion-description-alignment="right"]
+  .accordion-item__description {
+  text-align: right;
+}
+
+[data-sdl-plugin="accordions"] .accordion-item__title > :first-of-type,
+[data-sdl-plugin="accordions"] .accordion-item__description > :first-of-type {
+  margin-top: 0;
+}
+
+[data-sdl-plugin="accordions"] .accordion-item__title > :last-of-type,
+[data-sdl-plugin="accordions"] .accordion-item__description > :last-of-type {
+  margin-bottom: 0;
+}
+
+[data-sdl-plugin="accordions"] .sdl-accordion-item > .accordion-item__title-wrapper .accordion-icon-container {
+  position: relative;
+  height: var(--sdl-accordion-icon-size, 14px);
+  width: var(--sdl-accordion-icon-size, 14px);
+  flex-shrink: 0;
+}
+
+[data-sdl-plugin="accordions"] .sdl-accordion-item > .accordion-item__title-wrapper .accordion-icon-container > * {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+[data-sdl-plugin="accordions"] .sdl-accordion-item > .accordion-item__title-wrapper .plus__horizontal-line,
+[data-sdl-plugin="accordions"] .sdl-accordion-item > .accordion-item__title-wrapper .plus__vertical-line {
+  height: var(--sdl-accordion-icon-thickness, 1px);
+  display: block;
+  width: 100%;
+  background-color: var(--sdl-accordion-icon-color, currentColor);
+  transition: transform 0.2s;
+  position: absolute;
+}
+
+[data-sdl-plugin="accordions"] .sdl-accordion-item > .accordion-item__title-wrapper .plus__vertical-line {
+  transform: rotate(90deg);
+}
+
+[data-sdl-plugin="accordions"]
+  .sdl-accordion-item[data-is-open="true"] > .accordion-item__title-wrapper .plus__vertical-line {
+  transform: rotate(0deg);
+}
+
+[data-sdl-plugin="accordions"] .sdl-accordion-item > .accordion-item__title-wrapper .arrow-container {
+  transition: transform 0.2s;
+}
+
+[data-sdl-plugin="accordions"]
+  .sdl-accordion-item[data-is-open="true"] > .accordion-item__title-wrapper .arrow-container {
+  transform: rotate(-180deg);
+}
+
+[data-sdl-plugin="accordions"] .sdl-accordion-item > .accordion-item__title-wrapper .arrow {
+  border-color: var(--sdl-accordion-icon-color, currentColor);
+  border-style: solid;
+  border-width: var(--sdl-accordion-icon-thickness, 1px);
+  border-top: none;
+  border-left: none;
+  box-sizing: border-box;
+  transform: translatey(-25%) rotate(45deg);
+  width: 70.71067%;
+  height: 70.71067%;
+}
+
+[data-sdl-plugin="accordions"][data-custom-icon] .sdl-accordion-item > .accordion-item__title-wrapper .accordion-icon-container > * {
+  transition: transform 0.35s ease-in-out;
+}
+
+[data-sdl-plugin="accordions"][data-custom-icon]
+  .sdl-accordion-item[data-is-open="true"] > .accordion-item__title-wrapper .accordion-icon-container
+  > * {
+  transform: rotate(var(--sdl-accordion-custom-icon-rotation, 180deg));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-sdl-plugin="accordions"] .accordion-item__dropdown,
+  [data-sdl-plugin="accordions"] .plus__vertical-line,
+  [data-sdl-plugin="accordions"] .arrow-container {
+    transition: none !important;
+  }
+}
+
+/* In Product Details */
+.product-details [data-sdl-plugin="accordions"],
+.ProductItem-details-checkout [data-sdl-plugin="accordions"] {
+  margin: 2rem 0px;
+  order: 5;
+}
+.product-detail .product-meta [data-sdl-plugin="accordions"] {
+  margin: 2rem 0px;
+  order: 5;
+}
+
+/* Remove Pagination from Portfolio Grid */
+[data-sdl-plugin="accordions"] .accordion-item__description > #itemPagination {
+  display: none;
+}
+
+/* Edit Mode */
+body.sqs-edit-mode-active .sqs-block-code:has([data-sdl-plugin="accordions"]) {
+  border: 1px dashed currentColor;
+  box-sizing: border-box;
+}
+body.sqs-edit-mode-active
+  .sqs-block-code:has([data-sdl-plugin="accordions"])::after {
+  content: "Accordions Plugin Settings";
+  position: absolute;
+  font-size: 10px;
+  padding: 0px 4px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--siteBackgroundColor);
+  color: var(--headingExtraLargeColor);
+  box-sizing: border-box;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+body.sqs-edit-mode-active
+  .sqs-block.sqs-block-code:has([data-sdl-plugin="accordions"]):hover::after {
+  opacity: 1;
+}
+
+/* No Section Dividers */
+[data-sdl-plugin="accordions"] section.has-section-divider {
+  padding-bottom: 0px;
+  z-index: initial;
+}
+[data-sdl-plugin="accordions"] section > .section-border {
+  clip-path: unset !important;
+  top: 0 !important;
+}
+[data-sdl-plugin="accordions"] section > .section-divider-display {
+  display: none;
+}
