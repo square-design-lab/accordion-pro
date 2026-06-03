@@ -396,3 +396,63 @@ body.sqs-edit-mode-active
 [data-sdl-plugin="accordions"] section > .section-divider-display {
   display: none;
 }
+
+/* ===========================================================================
+   Fetched collection-page content (galleries, lazy images, Fluid Engine)
+   Content pulled from collection item pages is injected without Squarespace's
+   gallery / image controllers running on it. The plugin JS reveals and lays
+   these out; the rules below are CSS backstops + spacing fixes, scoped to the
+   accordion content container.
+   =========================================================================== */
+
+/* Reveal lazy gallery items (all Squarespace gallery designs) */
+[data-sdl-plugin="accordions"] .accordion-item__description .gallery-grid-item:not([data-show]) .gallery-grid-item-wrapper,
+[data-sdl-plugin="accordions"] .accordion-item__description .gallery-masonry-item:not([data-show]) .gallery-masonry-item-wrapper,
+[data-sdl-plugin="accordions"] .accordion-item__description .gallery-strips-item:not([data-show]) .gallery-strips-item-wrapper,
+[data-sdl-plugin="accordions"] .accordion-item__description .gallery-stacked-item:not([data-show]) .gallery-stacked-item-wrapper,
+[data-sdl-plugin="accordions"] .accordion-item__description [class*="gallery-"][class*="-item"]:not([data-show]) > [class*="-item-wrapper"],
+[data-sdl-plugin="accordions"] .accordion-item__description .gallery-grid-item .gallery-grid-item-wrapper,
+[data-sdl-plugin="accordions"] .accordion-item__description .gallery-masonry-item .gallery-masonry-item-wrapper,
+[data-sdl-plugin="accordions"] .accordion-item__description .gallery-fullscreen-slideshow-item,
+[data-sdl-plugin="accordions"] .accordion-item__description .gallery-reel-item {
+  opacity: 1 !important;
+  animation-name: none !important;
+}
+[data-sdl-plugin="accordions"] .accordion-item__description img[data-src].loaded,
+[data-sdl-plugin="accordions"] .accordion-item__description img[data-loaded="true"] {
+  opacity: 1 !important;
+}
+
+/* Force gallery / summary images to fill their container */
+[data-sdl-plugin="accordions"] .accordion-item__description .sqs-block-calendar img[data-parent-ratio],
+[data-sdl-plugin="accordions"] .accordion-item__description .sqs-block-gallery img[data-parent-ratio],
+[data-sdl-plugin="accordions"] .accordion-item__description .sqs-block-summary-v2 .summary-block-wrapper:not(.sqs-gallery-design-autocolumns) img[data-parent-ratio] {
+  left: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  position: absolute !important;
+  object-position: var(--sdl-focal-point, center) !important;
+}
+[data-sdl-plugin="accordions"] .accordion-item__description .sqs-block-gallery .content-fit img[data-parent-ratio] {
+  object-fit: contain !important;
+  object-position: unset !important;
+}
+
+/* Fluid Engine block spacing for injected sections */
+[data-sdl-plugin="accordions"] .accordion-item__description .sqs-layout .sqs-block {
+  width: 100%;
+  box-sizing: border-box;
+}
+[data-sdl-plugin="accordions"] .accordion-item__description .fe-block > .sqs-block,
+[data-sdl-plugin="accordions"] .accordion-item__description .sqs-layout .fe-block > .sqs-block {
+  padding-left: 0px;
+  padding-right: 0px;
+}
+
+/* Remove top padding from the first injected section */
+[data-sdl-plugin="accordions"] .accordion-item__description > #sections > section.page-section:first-child,
+[data-sdl-plugin="accordions"] .accordion-item__description > section.page-section:first-child {
+  padding-top: 0 !important;
+}

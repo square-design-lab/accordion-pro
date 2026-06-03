@@ -120,7 +120,70 @@
     }
   }
 
-  // Fetch a Squarespace collection as JSON and normalise its items.
+  // Resolve a scope argument (node / array / nothing) into real DOM nodes.
+  function resolveNodes(scope) {
+    if (!scope) return [document.body];
+    const arr = Array.isArray(scope) ? scope : [scope];
+    return arr.filter((n) => n && n.nodeType === 1);
+  }
+
+  // Extract the page-section markup from an individual collection item's HTML
+  // page. Squarespace 7.1 item pages render their sections inside an <article>
+  // (or #sections / <main>). Returns a "<div id='sections'>…</div>" string.
+  function extractSectionsFromPageHtml(html) {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const container =
+      doc.querySelector("article #sections") ||
+      doc.querySelector("#sections") ||
+      doc.querySelector("article") ||
+      doc.querySelector("main") ||
+      doc.body;
+    if (!container) return "";
+
+    let sections = container.querySelectorAll(
+      ":scope > section.page-section, :scope > section[data-section-id]"
+    );
+    if (!sections.length) {
+      sections = container.querySelectorAll(
+        "section.page-section, section[data-section-id]"
+      );
+    }
+
+    const wrap = document.createElement("div");
+    wrap.id = "sections";
+    if (sections.length) {
+      sections.forEach((section) => wrap.appendChild(section));
+    } else {
+      wrap.innerHTML = container.innerHTML;
+    }
+    return wrap.outerHTML;
+  }
+
+  // Fetch a single item page and return its sections markup (best-effort).
+  async function fetchItemSections(fullUrl) {
+    try {
+      const res = await fetch(fullUrl, {
+        credentials: "same-origin",
+        headers: { Accept: "text/html" },
+      });
+      if (!res.ok) {
+        console.error(
+          "sdlAccordions: failed to fetch item page " + fullUrl + " (HTTP " + res.status + ")"
+        );
+        return "";
+      }
+      const html = await res.text();
+      return extractSectionsFromPageHtml(html);
+    } catch (e) {
+      console.error("sdlAccordions: error fetching item page " + fullUrl, e);
+      return "";
+    }
+  }
+
+  // Fetch a Squarespace collection as JSON and normalise its items. For a
+  // portfolio (a collection of pages), the list JSON does NOT embed each item's
+  // page sections, so we fetch each item's page and pull the sections from its
+  // <article>. Blog / FAQ / other collections keep their inline item.body.
   async function collectionData(source, options) {
     const opts = options || {};
     let path = source;
@@ -153,41 +216,197 @@
       },
     }));
 
+    const type = data.collection?.typeName || data.collection?.type || "collection";
+
+    // Portfolio items are full pages — fetch each one and pull its sections.
+    const hasInlineSections = items.some(
+      (it) => typeof it.body === "string" && it.body.indexOf('id="sections"') !== -1
+    );
+    if (type === "portfolio" && !hasInlineSections) {
+      await Promise.all(
+        items.map(async (it) => {
+          if (it.fullUrl) {
+            const sections = await fetchItemSections(it.fullUrl);
+            if (sections) it.body = sections;
+          }
+        })
+      );
+    }
+
+    return { items, type };
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  Lazy content + gallery layout (for fetched page sections)
+   * ------------------------------------------------------------------ */
+
+  // Force lazy / JS-gated content visible inside injected markup: responsive
+  // images (data-src + ImageLoader), gallery items hidden by
+  // ".gallery-*-item:not([data-show])", and section background images.
+  function revealLazyContent(scope) {
+    resolveNodes(scope).forEach((node) => {
+      try {
+        node.querySelectorAll("img[data-src]").forEach((img) => {
+          if (window.ImageLoader && typeof window.ImageLoader.load === "function") {
+            try {
+              window.ImageLoader.load(img, { load: true });
+            } catch (e) {
+              /* fall through */
+            }
+          }
+          if (!img.getAttribute("src")) img.setAttribute("src", img.getAttribute("data-src"));
+          img.classList.add("loaded");
+          img.setAttribute("data-loaded", "true");
+        });
+      } catch (e) {
+        /* no-op */
+      }
+      try {
+        node
+          .querySelectorAll(
+            '.gallery-grid-item, .gallery-masonry-item, .gallery-strips-item, ' +
+              '.gallery-stacked-item, .gallery-reel-item, .gallery-slideshow-item, ' +
+              '.gallery-fullscreen-slideshow-item, .gallery-square-item, ' +
+              '[class*="gallery-"][class*="-item"]'
+          )
+          .forEach((item) => item.setAttribute("data-show", ""));
+      } catch (e) {
+        /* no-op */
+      }
+    });
+  }
+
+  // ---- Squarespace 7.1 Gallery Section layout reproduction ----
+  // Gallery sections (data-controller="GalleryGrid"/"GalleryMasonry") are laid
+  // out by a bundled controller that runs once on initial page load and cannot
+  // be re-invoked on injected content. Reproduce its layout from data-props.
+  function galleryAspectWH(name) {
+    switch (name) {
+      case "square": return 1;
+      case "portrait": return 2 / 3;
+      case "standard": return 4 / 3;
+      case "widescreen": return 16 / 9;
+      default: return null; // "original" → image's natural ratio
+    }
+  }
+
+  function galleryItemRatioHW(item) {
+    const img = item.querySelector("img");
+    const dims = img && img.getAttribute("data-image-dimensions");
+    if (dims) {
+      const parts = dims.split("x").map(Number);
+      if (parts[0] && parts[1]) return parts[1] / parts[0];
+    }
+    if (img && img.naturalWidth) return img.naturalHeight / img.naturalWidth;
+    return 1;
+  }
+
+  function readGalleryProps(el) {
+    let props = {};
+    try {
+      props = JSON.parse(el.dataset.props || "{}");
+    } catch (e) {
+      /* fall back to data-* */
+    }
     return {
-      items,
-      type: data.collection?.typeName || data.collection?.type || "collection",
+      numColumns: Number(props.numColumns) || Number(el.dataset.columns) || 1,
+      gutter: props.gutter != null ? Number(props.gutter) : Number(el.dataset.gutter) || 0,
+      aspectRatio: props.aspectRatio || el.dataset.aspectRatio || "original",
     };
   }
 
+  function responsiveColumns(cols, width) {
+    if (width < 480) return 1;
+    if (width < 767) return Math.min(cols, 2);
+    return cols;
+  }
+
+  function layoutGalleryGrid(grid) {
+    const wrapper = grid.querySelector(".gallery-grid-wrapper");
+    if (!wrapper) return;
+    const { numColumns, gutter, aspectRatio } = readGalleryProps(grid);
+    const cols = responsiveColumns(numColumns, wrapper.clientWidth || window.innerWidth);
+    const gapVw = gutter / 20; // controller maps gutter 50 → 2.5vw
+    wrapper.style.gridTemplateColumns = "repeat(" + cols + ", 1fr)";
+    wrapper.style.columnGap = gapVw + "vw";
+    wrapper.style.rowGap = gapVw + "vw";
+    const fixedAr = galleryAspectWH(aspectRatio);
+    grid.querySelectorAll(".gallery-grid-item").forEach((item) => {
+      item.style.position = "relative";
+      const arWH = fixedAr != null ? fixedAr : 1 / galleryItemRatioHW(item);
+      item.style.aspectRatio = String(arWH);
+    });
+  }
+
+  function layoutGalleryMasonry(gallery) {
+    const wrapper = gallery.querySelector(".gallery-masonry-wrapper");
+    if (!wrapper) return;
+    const width = wrapper.clientWidth;
+    if (!width) return;
+    const { numColumns, gutter } = readGalleryProps(gallery);
+    const cols = responsiveColumns(numColumns, width);
+    const gutterPx = ((gutter / 20) / 100) * window.innerWidth;
+    const colWidth = (width - gutterPx * (cols - 1)) / cols;
+    const colHeights = new Array(cols).fill(0);
+    wrapper.style.position = "relative";
+    gallery.querySelectorAll(".gallery-masonry-item").forEach((item) => {
+      const itemHeight = colWidth * galleryItemRatioHW(item);
+      let min = 0;
+      for (let i = 1; i < cols; i++) {
+        if (colHeights[i] < colHeights[min]) min = i;
+      }
+      item.style.position = "absolute";
+      item.style.margin = "0";
+      item.style.width = colWidth + "px";
+      item.style.left = min * (colWidth + gutterPx) + "px";
+      item.style.top = colHeights[min] + "px";
+      colHeights[min] += itemHeight + gutterPx;
+    });
+    const tallest = colHeights.reduce((a, b) => Math.max(a, b), 0);
+    wrapper.style.height = Math.max(0, tallest - gutterPx) + "px";
+  }
+
+  function layoutGalleries(scope) {
+    resolveNodes(scope).forEach((node) => {
+      try {
+        node.querySelectorAll(".gallery-grid").forEach(layoutGalleryGrid);
+      } catch (e) {
+        /* no-op */
+      }
+      try {
+        node.querySelectorAll(".gallery-masonry").forEach(layoutGalleryMasonry);
+      } catch (e) {
+        /* no-op */
+      }
+    });
+  }
+
   // Re-run Squarespace's block / embed / commerce initialisation after the
-  // accordion DOM has been (re)built and sections moved into panels.
-  async function reloadSquarespaceLifecycle() {
+  // accordion DOM has been (re)built and content injected, then force any lazy
+  // content visible and reproduce gallery layout. `scope` limits the work.
+  async function reloadSquarespaceLifecycle(scope) {
+    const nodes = resolveNodes(scope);
     try {
       const Y = window.Y;
       const SQS = window.Squarespace;
       if (SQS && Y) {
-        const root = Y.one(document.body);
         if (typeof SQS.globalInit === "function") SQS.globalInit(Y);
-        if (typeof SQS.initializeLayoutBlocks === "function")
-          SQS.initializeLayoutBlocks(Y, root);
-        if (typeof SQS.initializeCommerce === "function")
-          SQS.initializeCommerce(Y, root);
+        nodes.forEach((node) => {
+          const yNode = Y.one(node);
+          if (!yNode) return;
+          if (typeof SQS.initializeLayoutBlocks === "function")
+            SQS.initializeLayoutBlocks(Y, yNode);
+          if (typeof SQS.initializeCommerce === "function")
+            SQS.initializeCommerce(Y, yNode);
+        });
         if (typeof SQS.afterBodyLoad === "function") SQS.afterBodyLoad(Y);
       }
     } catch (e) {
       /* best-effort — never break the page */
     }
 
-    // Re-trigger the responsive image loader for any moved images.
-    try {
-      if (window.ImageLoader && typeof window.ImageLoader.load === "function") {
-        document
-          .querySelectorAll("img[data-src]")
-          .forEach((img) => window.ImageLoader.load(img, { load: true }));
-      }
-    } catch (e) {
-      /* no-op */
-    }
+    revealLazyContent(nodes);
+    layoutGalleries(nodes);
 
     window.dispatchEvent(new Event("resize"));
     window.dispatchEvent(new Event("mercury:load"));
@@ -348,6 +567,13 @@
 
       itemEl.dataset.isItemAnimating = "true";
       contentDiv.style.display = "block";
+
+      // Reveal lazy images and (re)compute Squarespace gallery layout now that
+      // the content has width, so scrollHeight includes the gallery height and
+      // the open animation expands to the correct size.
+      revealLazyContent(descriptionDiv);
+      layoutGalleries(descriptionDiv);
+
       const scrollHeight = descriptionDiv.scrollHeight + "px";
 
       requestAnimationFrame(() => {
@@ -595,7 +821,19 @@
             if (moved) contentDescriptionDiv.appendChild(moved);
           });
         } else if (accordionItem.body) {
-          contentDescriptionDiv.innerHTML = accordionItem.body;
+          // Portfolio page sections arrive wrapped in "<div id='sections'>".
+          // Unwrap them so the markup matches a real page and we don't create
+          // duplicate id="sections" across accordion items.
+          const tmp = document.createElement("div");
+          tmp.innerHTML = accordionItem.body;
+          const sectionsWrap = tmp.querySelector("#sections");
+          if (sectionsWrap) {
+            while (sectionsWrap.firstChild) {
+              contentDescriptionDiv.appendChild(sectionsWrap.firstChild);
+            }
+          } else {
+            contentDescriptionDiv.innerHTML = accordionItem.body;
+          }
         }
         contentDropdownDiv.appendChild(contentDescriptionDiv);
         itemElement.appendChild(contentDropdownDiv);
@@ -778,17 +1016,33 @@
       if (sections && !sections.contains(el) && lastSection) {
         lastSection.appendChild(el);
         wasAppended = true;
-        await reloadSquarespaceLifecycle();
+        await reloadSquarespaceLifecycle([el]);
         window.dispatchEvent(new Event("resize"));
       } else {
-        await reloadSquarespaceLifecycle();
+        await reloadSquarespaceLifecycle([el]);
       }
 
       if (wasAppended && originalParent) originalParent.appendChild(el);
 
+      // Re-lay-out galleries once the accordion is back in its final position
+      // (the container width can differ from where the lifecycle reload ran).
+      layoutGalleries(el);
+
       if (!instance.fullWidthResizeListenerSet && !settings.isFullWidth) {
         window.addEventListener("resize", setIsFullWidth);
         instance.fullWidthResizeListenerSet = true;
+      }
+
+      // Masonry galleries position items by pixel and must be recomputed when
+      // the viewport changes. Open items use max-height:none so they reflow.
+      if (!instance.galleryResizeListenerSet) {
+        let rafId;
+        instance.galleryResizeHandler = () => {
+          if (rafId) cancelAnimationFrame(rafId);
+          rafId = requestAnimationFrame(() => layoutGalleries(el));
+        };
+        window.addEventListener("resize", instance.galleryResizeHandler);
+        instance.galleryResizeListenerSet = true;
       }
 
       if (settings.titleDescriptions) applyCustomDescriptionFromCSS();
