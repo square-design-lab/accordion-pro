@@ -217,21 +217,23 @@
     }));
 
     const type = data.collection?.typeName || data.collection?.type || "collection";
+    // Portfolio collections report typeName like "portfolio", "portfolio-grid-basic", etc.
+    const isPortfolio = /portfolio/i.test(String(type));
 
-    // Portfolio items are full pages — fetch each one and pull its sections.
-    const hasInlineSections = items.some(
-      (it) => typeof it.body === "string" && it.body.indexOf('id="sections"') !== -1
+    // Portfolio items are full pages whose sections are NOT in the list JSON,
+    // so fetch each item's page and pull its sections. Non-portfolio
+    // collections (blog / FAQ / events) keep their inline body; only an item
+    // with an empty body but a fullUrl falls back to a page fetch.
+    await Promise.all(
+      items.map(async (it, i) => {
+        const rawBody = (rawItems[i] && rawItems[i].body) || "";
+        const rawHasSections = rawBody.indexOf('id="sections"') !== -1;
+        if (it.fullUrl && !rawHasSections && (isPortfolio || !rawBody.trim())) {
+          const sections = await fetchItemSections(it.fullUrl);
+          if (sections) it.body = sections;
+        }
+      })
     );
-    if (type === "portfolio" && !hasInlineSections) {
-      await Promise.all(
-        items.map(async (it) => {
-          if (it.fullUrl) {
-            const sections = await fetchItemSections(it.fullUrl);
-            if (sections) it.body = sections;
-          }
-        })
-      );
-    }
 
     return { items, type };
   }
