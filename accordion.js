@@ -292,19 +292,47 @@
   }
 
   // Fetch a single item page and return its sections markup (best-effort).
+  // Fetch a page's lean content fragment via Squarespace's ?format=html
+  // endpoint (no header/footer/site bundle) so injected content paints faster.
+  function fetchPageHtmlFresh(url) {
+    const u = url + (url.indexOf("?") === -1 ? "?format=html" : "&format=html");
+    return fetch(u, { credentials: "same-origin", cache: "no-store" }).then((res) => {
+      if (!res.ok) throw new Error("sdlAccordions: HTTP " + res.status + " fetching " + url);
+      return res.text();
+    });
+  }
+
+  // Stale-while-revalidate localStorage cache for item-page HTML: serves the
+  // cached fragment instantly (so repeat opens have no network wait) and
+  // refreshes in the background once it passes the TTL.
+  async function fetchPageHtmlCached(url) {
+    const key = "sdlAccordions:page:" + url;
+    const keyExp = key + ":exp";
+    const writeCache = (html) => {
+      try {
+        localStorage.setItem(key, html);
+        localStorage.setItem(keyExp, String(Date.now() + CACHE_TTL_MS));
+      } catch (e) { /* quota / disabled */ }
+    };
+    const isExpired = () => {
+      let t = 0;
+      try { t = parseInt(localStorage.getItem(keyExp) || "0", 10); } catch (e) {}
+      return !t || t <= Date.now();
+    };
+    let cached = null;
+    try { cached = localStorage.getItem(key); } catch (e) {}
+    if (cached) {
+      if (isExpired()) fetchPageHtmlFresh(url).then(writeCache).catch(() => {});
+      return cached;
+    }
+    const html = await fetchPageHtmlFresh(url);
+    writeCache(html);
+    return html;
+  }
+
   async function fetchItemSections(fullUrl) {
     try {
-      const res = await fetch(fullUrl, {
-        credentials: "same-origin",
-        headers: { Accept: "text/html" },
-      });
-      if (!res.ok) {
-        console.error(
-          "sdlAccordions: failed to fetch item page " + fullUrl + " (HTTP " + res.status + ")"
-        );
-        return "";
-      }
-      const html = await res.text();
+      const html = await fetchPageHtmlCached(fullUrl);
       return extractSectionsFromPageHtml(html);
     } catch (e) {
       console.error("sdlAccordions: error fetching item page " + fullUrl, e);
