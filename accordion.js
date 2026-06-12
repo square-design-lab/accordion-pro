@@ -127,6 +127,138 @@
     return arr.filter((n) => n && n.nodeType === 1);
   }
 
+  // Trigger Squarespace's responsive ImageLoader for lazy/unloaded images.
+  function loadImages(scope) {
+    const imageLoader = window.ImageLoader || window.Squarespace?.ImageLoader;
+    if (!imageLoader || typeof imageLoader.load !== "function") return;
+    resolveNodes(scope).forEach((node) => {
+      node.querySelectorAll("img[data-src], img:not([src])").forEach((img) => {
+        try { imageLoader.load(img, { load: true }); } catch (e) { /* no-op */ }
+        img.classList.add("loaded");
+      });
+    });
+  }
+
+  // Re-execute <script> tags inside injected markup. DOMParser never runs
+  // scripts, so embed blocks, custom code, and third-party SDKs stay silent
+  // until this runs. Executes sequentially; idempotent via data-sdl-ran.
+  function executeScripts(container) {
+    if (!container) return Promise.resolve();
+    const scripts = Array.from(
+      container.querySelectorAll("script:not([data-sdl-ran])")
+    ).filter((s) => {
+      const t = s.getAttribute("type");
+      return !t || t === "text/javascript" || t === "application/javascript";
+    });
+    return scripts.reduce(
+      (chain, old) =>
+        chain.then(
+          () =>
+            new Promise((resolve) => {
+              const script = document.createElement("script");
+              Array.from(old.attributes).forEach((a) => script.setAttribute(a.name, a.value));
+              script.setAttribute("data-sdl-ran", "");
+              if (old.src) {
+                let done = false;
+                const finish = () => { if (!done) { done = true; resolve(); } };
+                script.onload = script.onerror = finish;
+                setTimeout(finish, 5000); // guard: never stall on a blocked src
+                script.src = old.src;
+                old.parentNode.replaceChild(script, old);
+              } else {
+                script.textContent = old.textContent || "";
+                old.parentNode.replaceChild(script, old);
+                resolve();
+              }
+            })
+        ),
+      Promise.resolve()
+    );
+  }
+
+  // Hydrate Squarespace form blocks in injected content. Must run after
+  // content is in its final DOM position. Covers both 7.1 React forms and
+  // legacy YUI forms.
+  function reinitializeForms(scope) {
+    const nodes = resolveNodes(scope);
+    const Y = window.Y;
+    const Sqs = window.Squarespace;
+    if (!Y || !Sqs) return;
+    nodes.forEach((node) => {
+      const hasComponentForm = node.querySelector(
+        '[data-definition-name="website.components.form"], .sqs-block-website-component'
+      );
+      const hasLegacyForm = node.querySelector(
+        ".sqs-block-form, .form-block, .sqs-block-newsletter, .newsletter-block"
+      );
+      if (!hasComponentForm && !hasLegacyForm) return;
+      try { if (typeof Sqs.initializeWebsiteComponent === "function") Sqs.initializeWebsiteComponent(Y); } catch (e) {}
+      try { if (typeof Sqs.initializeFormBlocks === "function") Sqs.initializeFormBlocks(Y, Y); } catch (e) {}
+    });
+  }
+
+  // Render Squarespace video embed blocks from their data-html attribute.
+  // 7.1 video blocks are React components whose visitor module fails to load
+  // in AJAX-injected content. This builds the iframe from the server-rendered
+  // data-html and strips the hydration marker to suppress the console error.
+  function renderVideoEmbeds(scope) {
+    resolveNodes(scope).forEach((node) => {
+      node.querySelectorAll(".sqs-video-wrapper[data-html]").forEach((wrap) => {
+        const component = wrap.closest("[data-website-component-id]");
+        if (component) component.removeAttribute("data-website-component-id");
+        if (wrap.querySelector("iframe")) return;
+        const html = wrap.getAttribute("data-html");
+        if (!html) return;
+        const tmp = document.createElement("div");
+        tmp.innerHTML = html;
+        const iframe = tmp.querySelector("iframe");
+        if (iframe) wrap.appendChild(iframe);
+      });
+    });
+  }
+
+  // Stale-while-revalidate localStorage cache for collection JSON fetches.
+  // Returns cached data immediately (even if stale) and refreshes in the
+  // background, so repeat accordion opens feel instant.
+  const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+  function fetchWithCache(url) {
+    const cacheKey = "sdlAccordions:cache:" + url;
+    let stored = null;
+    try {
+      const raw = localStorage.getItem(cacheKey);
+      if (raw) stored = JSON.parse(raw);
+    } catch (e) { /* localStorage unavailable */ }
+
+    const doFetch = () =>
+      fetch(url, { credentials: "same-origin" })
+        .then((res) => {
+          if (!res.ok) throw new Error("sdlAccordions: HTTP " + res.status + " fetching " + url);
+          return res.json();
+        })
+        .then((data) => {
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data }));
+          } catch (e) { /* storage full or unavailable */ }
+          return data;
+        });
+
+    if (!stored) return doFetch();
+    const isStale = Date.now() - stored.timestamp > CACHE_TTL_MS;
+    if (isStale) doFetch().catch(() => {}); // background refresh
+    return Promise.resolve(stored.data);
+  }
+
+  // Backfill data-section-theme on injected sections that lack it, so fetched
+  // sections keep their colour themes when moved into the live document.
+  function handleAddingMissingColorTheme() {
+    try {
+      document.querySelectorAll(".page-section:not([data-section-theme])").forEach((section) => {
+        const themed = section.closest("[data-section-theme]");
+        if (themed) section.dataset.sectionTheme = themed.dataset.sectionTheme;
+      });
+    } catch (e) { /* no-op */ }
+  }
+
   // Extract the page-section markup from an individual collection item's HTML
   // page. Squarespace 7.1 item pages render their sections inside an <article>
   // (or #sections / <main>). Returns a "<div id='sections'>…</div>" string.
@@ -199,11 +331,7 @@
     if (!/^https?:\/\//.test(path) && path[0] !== "/") path = "/" + path;
     const url = path + (path.indexOf("?") === -1 ? "?format=json" : "&format=json");
 
-    const response = await fetch(url, { credentials: "same-origin" });
-    if (!response.ok) {
-      throw new Error("sdlAccordions: failed to fetch collection " + path);
-    }
-    const data = await response.json();
+    const data = await fetchWithCache(url);
     const rawItems = Array.isArray(data.items) ? data.items : [];
 
     const items = rawItems.map((item) => ({
@@ -272,6 +400,13 @@
               '[class*="gallery-"][class*="-item"]'
           )
           .forEach((item) => item.setAttribute("data-show", ""));
+      } catch (e) {
+        /* no-op */
+      }
+      try {
+        node
+          .querySelectorAll('[data-loader-loaded="false"]')
+          .forEach((el2) => el2.setAttribute("data-loader-loaded", "true"));
       } catch (e) {
         /* no-op */
       }
@@ -396,10 +531,12 @@
         nodes.forEach((node) => {
           const yNode = Y.one(node);
           if (!yNode) return;
-          if (typeof SQS.initializeLayoutBlocks === "function")
-            SQS.initializeLayoutBlocks(Y, yNode);
-          if (typeof SQS.initializeCommerce === "function")
-            SQS.initializeCommerce(Y, yNode);
+          if (typeof SQS.initializeLayoutBlocks === "function") SQS.initializeLayoutBlocks(Y, yNode);
+          if (typeof SQS.initializeNativeVideo === "function") SQS.initializeNativeVideo(Y, yNode);
+          if (typeof SQS.initializeSummaryV2Block === "function") SQS.initializeSummaryV2Block(Y, yNode);
+          if (typeof SQS.initializeCommentLink === "function") SQS.initializeCommentLink(Y, yNode);
+          if (typeof SQS.initializeParallax === "function") SQS.initializeParallax(Y, yNode);
+          if (typeof SQS.initializeCommerce === "function") SQS.initializeCommerce(Y, yNode);
         });
         if (typeof SQS.afterBodyLoad === "function") SQS.afterBodyLoad(Y);
       }
@@ -408,6 +545,7 @@
     }
 
     revealLazyContent(nodes);
+    loadImages(nodes);
     layoutGalleries(nodes);
 
     window.dispatchEvent(new Event("resize"));
@@ -574,7 +712,13 @@
       // the content has width, so scrollHeight includes the gallery height and
       // the open animation expands to the correct size.
       revealLazyContent(descriptionDiv);
+      loadImages(descriptionDiv);
       layoutGalleries(descriptionDiv);
+      // Video iframes and scripts that failed to initialize while the panel was
+      // hidden (max-height:0) get a second chance here. executeScripts is
+      // idempotent via data-sdl-ran, so re-calling is safe.
+      renderVideoEmbeds(descriptionDiv);
+      executeScripts(descriptionDiv).catch(() => {});
 
       const scrollHeight = descriptionDiv.scrollHeight + "px";
 
@@ -1029,6 +1173,14 @@
       // Re-lay-out galleries once the accordion is back in its final position
       // (the container width can differ from where the lifecycle reload ran).
       layoutGalleries(el);
+
+      // Initialise video embeds, scripts, and forms. Scripts must run before
+      // forms are hydrated (scripts may register React component dependencies).
+      if (window.Squarespace) {
+        handleAddingMissingColorTheme();
+        renderVideoEmbeds(el);
+        executeScripts(el).then(() => reinitializeForms(el));
+      }
 
       if (!instance.fullWidthResizeListenerSet && !settings.isFullWidth) {
         window.addEventListener("resize", setIsFullWidth);
